@@ -6,6 +6,8 @@ import Accueil from './pages/Accueil';
 import DetailAnnonce from './pages/DetailAnnonce';
 import MonCompte from './pages/MonCompte';
 import NouvelleAnnonce from './pages/NouvelleAnnonce';
+import Messages from './pages/Messages';
+import ModifierAnnonce from './pages/ModifierAnnonce';
 
 function App() {
   return (
@@ -16,6 +18,7 @@ function App() {
         <Link to="/register" style={{ color: 'white', textDecoration: 'none', fontWeight: 'bold' }}>Inscription</Link>
         <Link to="/mon-compte" style={{ color: 'white', textDecoration: 'none', fontWeight: 'bold' }}>Mon Compte</Link>
         <Link to="/nouvelle-annonce" style={{ color: 'white', textDecoration: 'none', fontWeight: 'bold' }}>Publier</Link>
+        <Link to="/messages" style={{ color: 'white', textDecoration: 'none', fontWeight: 'bold' }}>Messages</Link>
       </nav>
       <Routes>
         <Route path="/" element={<Accueil />} />
@@ -24,6 +27,8 @@ function App() {
         <Route path="/annonce/:id" element={<DetailAnnonce />} />
         <Route path="/mon-compte" element={<MonCompte />} />
         <Route path="/nouvelle-annonce" element={<NouvelleAnnonce />} />
+        <Route path="/messages" element={<Messages />} />
+<Route path="/modifier-annonce/:id" element={<ModifierAnnonce />} />
       </Routes>
     </Router>
   );
