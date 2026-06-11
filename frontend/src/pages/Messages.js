@@ -15,7 +15,7 @@ function Messages() {
     }
     try {
       const response = await fetch('http://127.0.0.1:8000/api/messages/recus/', {
-        headers: { 'Authorization': Bearer ${token} }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       const data = await response.json();
       setMessages(data);
