@@ -1,3 +1,8 @@
 from django.contrib import admin
+from .models import Message
 
-# Register your models here.
+@admin.register(Message)
+class MessageAdmin(admin.ModelAdmin):
+    list_display = ('expediteur', 'destinataire', 'date_envoi', 'lu')
+    list_filter = ('lu', 'date_envoi')
+    search_fields = ('contenu', 'expediteur__username', 'destinataire__username')
