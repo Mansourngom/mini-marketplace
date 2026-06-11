@@ -1,154 +1,132 @@
-import { useState, useEffect } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
-import { ANNONCES_MOCK } from "../mocks/annonces";
+import React, { useState, useEffect } from 'react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 
-const USE_MOCK = true;
-
-function formatPrix(prix) {
-  return new Intl.NumberFormat("fr-SN", {
-    style: "currency",
-    currency: "XOF",
-    maximumFractionDigits: 0,
-  }).format(prix);
-}
-
-export default function AnnonceDetail() {
-  const { id }       = useParams();
-  const navigate     = useNavigate();
-  const [annonce, setAnnonce]   = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const [message, setMessage]   = useState("");
+function DetailAnnonce() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [annonce, setAnnonce] = useState(null);
+  const [message, setMessage] = useState('');
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
-  const [sent, setSent]         = useState(false);
+  const [sent, setSent] = useState(false);
 
   useEffect(() => {
-    if (USE_MOCK) {
-      setTimeout(() => {
-        setAnnonce(ANNONCES_MOCK.find((a) => a.id === parseInt(id)) || null);
-        setLoading(false);
-      }, 300);
-    } else {
-      import("../services/annonceService").then(({ annonceService }) => {
-        annonceService.getById(id).then((data) => {
-          setAnnonce(data);
-          setLoading(false);
-        });
-      });
-    }
+    fetch(`http://127.0.0.1:8000/api/annonces/${id}/`)
+      .then(res => res.json())
+      .then(data => { setAnnonce(data); setLoading(false); })
+      .catch(() => setLoading(false));
   }, [id]);
 
-  const handleContact = (e) => {
+  const handleContact = async (e) => {
     e.preventDefault();
-    // TODO : appeler messageService.send() quand le backend est prêt
-    setSent(true);
-    setMessage("");
-    setShowForm(false);
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      alert('Connectez-vous pour contacter le vendeur !');
+      navigate('/login');
+      return;
+    }
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/messages/envoyer/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          annonce: id,
+          destinataire: annonce.vendeur,
+          contenu: message
+        })
+      });
+      if (response.ok) {
+        setSent(true);
+        setMessage('');
+        setShowForm(false);
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+    }
   };
 
-  // ── Chargement ──
-  if (loading) {
-    return (
-      <div className="flex justify-center py-24">
-        <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-600
-                        rounded-full animate-spin" />
-      </div>
-    );
-  }
+  if (loading) return (
+    <div style={{ textAlign: 'center', padding: '60px' }}>
+      <div style={{ fontSize: '40px' }}>⏳</div>
+      <p>Chargement...</p>
+    </div>
+  );
 
-  // ── Introuvable ──
-  if (!annonce) {
-    return (
-      <div className="text-center py-24">
-        <p className="text-5xl mb-4">😕</p>
-        <h2 className="text-lg font-semibold text-gray-700">Annonce introuvable</h2>
-        <Link to="/" className="text-orange-600 hover:underline mt-2 block">
-          Retour à l'accueil
-        </Link>
-      </div>
-    );
-  }
+  if (!annonce) return (
+    <div style={{ textAlign: 'center', padding: '60px' }}>
+      <p style={{ fontSize: '40px' }}>😕</p>
+      <h2>Annonce introuvable</h2>
+      <Link to="/" style={{ color: '#F97316' }}>Retour à l'accueil</Link>
+    </div>
+  );
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-
+    <div style={{ maxWidth: '900px', margin: '30px auto', padding: '20px' }}>
       {/* Breadcrumb */}
-      <div className="text-sm text-gray-400 mb-4 flex items-center gap-1">
-        <Link to="/" className="hover:text-orange-600">Accueil</Link>
-        <span>/</span>
-        <span className="text-gray-700 truncate max-w-xs">{annonce.titre}</span>
+      <div style={{ fontSize: '13px', color: '#78716C', marginBottom: '20px' }}>
+        <Link to="/" style={{ color: '#F97316', textDecoration: 'none' }}>Accueil</Link>
+        <span> / </span>
+        <span>{annonce.titre}</span>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
-
-        {/* ── Image ── */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <img
-            src={annonce.image}
-            alt={annonce.titre}
-            className="w-full aspect-square object-cover"
-            onError={(e) => {
-              e.target.src = "https://placehold.co/600?text=Pas+d+image";
-            }}
-          />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+        {/* Image */}
+        <div style={{ backgroundColor: 'white', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.08)' }}>
+          {annonce.image ? (
+            <img src={annonce.image.trim().startsWith('http') ? annonce.image.trim() : `http://127.0.0.1:8000${annonce.image.trim()}`} alt={annonce.titre}
+              style={{ width: '100%', aspectRatio: '1', objectFit: 'cover' }}
+              onError={(e) => { e.target.src = ''; e.target.style.display = 'none'; }}
+            />
+          ) : (
+            <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '60px', backgroundColor: '#F5F5F4' }}>🖼️</div>
+          )}
         </div>
 
-        {/* ── Détails ── */}
-        <div className="flex flex-col gap-4">
-
+        {/* Détails */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Catégorie */}
-          <span className="inline-block text-xs bg-orange-100 text-orange-700
-                           px-2 py-1 rounded-full font-medium w-fit">
-            {annonce.categorie?.icon} {annonce.categorie?.nom}
+          <span style={{ backgroundColor: '#FFF7ED', color: '#F97316', fontSize: '12px', padding: '4px 12px', borderRadius: '20px', width: 'fit-content', fontWeight: '500' }}>
+            {annonce.categorie_nom || 'Autre'}
           </span>
 
           {/* Titre */}
-          <h1 className="text-xl font-bold text-gray-900 leading-snug">
-            {annonce.titre}
-          </h1>
+          <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1C1917', margin: 0 }}>{annonce.titre}</h1>
 
           {/* Prix */}
-          <p className="text-3xl font-bold text-orange-600">
-            {formatPrix(annonce.prix)}
+          <p style={{ fontSize: '28px', fontWeight: 'bold', color: '#F97316', margin: 0 }}>
+            {Number(annonce.prix).toLocaleString()} FCFA
           </p>
 
-          {/* Ville + date */}
-          <div className="flex items-center gap-3 text-sm text-gray-500">
+          {/* Localisation + date */}
+          <div style={{ display: 'flex', gap: '12px', color: '#78716C', fontSize: '14px' }}>
             <span>📍 {annonce.localisation}</span>
             <span>·</span>
-            <span>
-              {new Date(annonce.date_publication).toLocaleDateString("fr-SN")}
-            </span>
+            <span>{new Date(annonce.date_publication).toLocaleDateString('fr-SN')}</span>
           </div>
 
           {/* Description */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
-            <h3 className="font-semibold text-gray-800 mb-2">Description</h3>
-            <p className="text-gray-600 text-sm leading-relaxed">
-              {annonce.description}
-            </p>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <h3 style={{ fontWeight: '600', marginBottom: '8px', color: '#1C1917' }}>Description</h3>
+            <p style={{ color: '#78716C', fontSize: '14px', lineHeight: '1.6', margin: 0 }}>{annonce.description}</p>
           </div>
 
           {/* Vendeur */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-4
-                          flex items-center gap-3">
-            <div className="w-11 h-11 bg-orange-100 rounded-full flex items-center
-                            justify-center flex-shrink-0">
-              <span className="text-orange-700 font-bold text-lg">
-                {annonce.vendeur?.username?.[0]?.toUpperCase() || "V"}
-              </span>
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ width: '44px', height: '44px', backgroundColor: '#FFF7ED', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: '#F97316', fontSize: '18px' }}>
+              {annonce.vendeur_nom?.[0]?.toUpperCase() || 'V'}
             </div>
             <div>
-              <p className="text-xs text-gray-400">Vendeur</p>
-              <p className="font-semibold text-gray-800">
-                {annonce.vendeur?.username}
-              </p>
+              <p style={{ fontSize: '12px', color: '#78716C', margin: 0 }}>Vendeur</p>
+              <p style={{ fontWeight: '600', color: '#1C1917', margin: 0 }}>{annonce.vendeur_nom}</p>
             </div>
           </div>
 
-          {/* Message de succès */}
+          {/* Succès message */}
           {sent && (
-            <div className="bg-green-50 border border-green-300 text-green-700
-                            text-sm px-4 py-3 rounded-lg">
+            <div style={{ backgroundColor: '#F0FDF4', border: '1px solid #86EFAC', color: '#16A34A', padding: '12px', borderRadius: '8px', fontSize: '14px' }}>
               ✅ Votre message a été envoyé au vendeur !
             </div>
           )}
@@ -156,44 +134,30 @@ export default function AnnonceDetail() {
           {/* Bouton contacter */}
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-orange-600 hover:bg-orange-700 text-white font-medium
-                       py-3 w-full rounded-lg transition-colors text-base"
+            style={{ width: '100%', padding: '14px', backgroundColor: '#F97316', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
           >
             💬 Contacter le vendeur
           </button>
 
-          {/* Formulaire de contact */}
+          {/* Formulaire contact */}
           {showForm && (
-            <form
-              onSubmit={handleContact}
-              className="bg-white rounded-xl border border-gray-100 shadow-sm
-                         p-4 flex flex-col gap-3"
-            >
-              <h3 className="font-semibold text-gray-800">Envoyer un message</h3>
+            <form onSubmit={handleContact} style={{ backgroundColor: 'white', borderRadius: '12px', padding: '16px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <h3 style={{ fontWeight: '600', marginBottom: '12px', color: '#1C1917' }}>Envoyer un message</h3>
               <textarea
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 required
                 rows={4}
                 placeholder="Bonjour, je suis intéressé(e) par votre annonce..."
-                className="w-full border border-gray-300 rounded-lg px-3 py-2
-                           focus:outline-none focus:ring-2 focus:ring-orange-400
-                           text-sm resize-none"
+                style={{ width: '100%', border: '1.5px solid #E7E5E4', borderRadius: '8px', padding: '10px', fontSize: '14px', outline: 'none', resize: 'none', boxSizing: 'border-box' }}
               />
-              <div className="flex gap-2">
-                <button
-                  type="submit"
-                  className="bg-orange-600 hover:bg-orange-700 text-white font-medium
-                             py-2 flex-1 rounded-lg transition-colors text-sm"
-                >
+              <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+                <button type="submit"
+                  style={{ flex: 1, padding: '10px', backgroundColor: '#F97316', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
                   Envoyer
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="border border-orange-600 text-orange-600 hover:bg-orange-50
-                             font-medium py-2 px-4 rounded-lg transition-colors text-sm"
-                >
+                <button type="button" onClick={() => setShowForm(false)}
+                  style={{ padding: '10px 16px', backgroundColor: 'white', color: '#F97316', border: '1.5px solid #F97316', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
                   Annuler
                 </button>
               </div>
@@ -204,3 +168,5 @@ export default function AnnonceDetail() {
     </div>
   );
 }
+
+export default DetailAnnonce;

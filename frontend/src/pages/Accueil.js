@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const API_URL = 'http://127.0.0.1:8000';
+
 function Accueil() {
   const [annonces, setAnnonces] = useState([]);
   const [recherche, setRecherche] = useState('');
@@ -14,7 +16,7 @@ function Accueil() {
 
   const fetchAnnonces = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/annonces/');
+      const response = await fetch(`${API_URL}/api/annonces/`);
       const data = await response.json();
       setAnnonces(data);
     } catch (error) {
@@ -28,7 +30,7 @@ function Accueil() {
     setLoading(true);
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/api/annonces/?search=${recherche}&categorie=${categorie}`
+        `${API_URL}/api/annonces/?search=${recherche}&categorie=${categorie}`
       );
       const data = await response.json();
       setAnnonces(data);
@@ -38,6 +40,13 @@ function Accueil() {
       setLoading(false);
     }
   };
+
+  const getImageUrl = (image) => {
+  if (!image) return null;
+  const cleanImage = image.trim();
+  if (cleanImage.startsWith('http')) return cleanImage;
+  return `${API_URL}${cleanImage}`;
+};
 
   return (
     <div>
@@ -109,10 +118,14 @@ function Accueil() {
               >
                 <div style={{ backgroundColor: '#F5F5F4', height: '180px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   {annonce.image ? (
-                    <img src={annonce.image} alt={annonce.titre} style={{ width: '100%', height: '180px', objectFit: 'cover' }} />
-                  ) : (
-                    <span style={{ fontSize: '40px' }}>🖼️</span>
-                  )}
+                    <img
+                      src={getImageUrl(annonce.image)}
+                      alt={annonce.titre}
+                      style={{ width: '100%', height: '180px', objectFit: 'cover' }}
+                      onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                    />
+                  ) : null}
+                  <span style={{ fontSize: '40px', display: annonce.image ? 'none' : 'flex' }}>🖼️</span>
                 </div>
                 <div style={{ padding: '16px' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '6px', color: '#1C1917', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
