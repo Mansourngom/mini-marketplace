@@ -45,7 +45,7 @@ INSTALLED_APPS = [
     # Nos applications
     'users',
     'annonces',
-    'messagerie',
+    
 ]
 
 MIDDLEWARE = [
